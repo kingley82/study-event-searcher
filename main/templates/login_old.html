@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Войти{% endblock %}
+
+{% block content %}
+
+<form method="post" class="auth-form">
+    {% csrf_token %}
+
+    <div class="form-row">
+        {{ form.login.label_tag }}
+        {{ form.login }}
+        {{ form.login.errors }}
+    </div>
+
+    <div class="form-row">
+        {{ form.password.label_tag }}
+        {{ form.password }}
+        {{ form.password.errors }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Войти</button>
+    <a class="btn btn-secondary" href="/register">Зарегистрироваться</a>
+</form>
+
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Поиск{% endblock %}
+
+{% block content %}
+<div class="auth-form" style="width: 25%;">
+    <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label>Поиск событий</label>
+        <input id="search-input" placeholder="Название, адрес, описание" class="form-input">
+        <div style="display: flex; gap: 10px;">
+            <div>
+            <small>Искать от даты</small>
+            <input id="search-date1-input" type="datetime-local" class="form-input">
+            </div>
+            <div>
+            <small>Искать до даты</small>
+            <input id="search-date2-input" type="datetime-local" class="form-input">
+            </div>
+        </div>
+        <div>
+            <label style="display: inline;"><input id="search-old" type="checkbox" style="width: auto; margin-right: 5px;">Включая завершенные события</label>
+        </div>
+        <div>
+            <label style="display: inline;"><input id="search-near" type="checkbox" style="width: auto; margin-right: 5px;">Только события рядом со мной</label><h6 style="display: inline; cursor: pointer;" title="Будет производиться поиск в квадрате 30х30км. Необходимо указать свое местоположение в профиле."> (?)</h6>
+        </div>
+        <button class="btn btn-primary" style="width: 25%;" onclick="searchEvents()">Поиск</button>
+    </div>
+    <div class="separator">ИЛИ</div>
+    <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label>Поиск пользователей</label>
+        <input id="search-user-input" placeholder="По ID, именам" class="form-input">
+        <button class="btn btn-primary" style="width: 25%;" onclick="searchUsers()">Поиск</button>
+    </div>
+    <!-- <div class="separator">ИЛИ</div>
+    <a class="btn btn-primary" style="width: 100%;" href="/?near=1">Поиск событий рядом</a> -->
+</div>
+<script>
+    function searchEvents() {
+        let s = document.getElementById("search-input").value
+        let d1 = document.getElementById("search-date1-input").value
+        let d2 = document.getElementById("search-date2-input").value
+        let c = document.getElementById("search-old").checked
+        let near = document.getElementById("search-near").checked
+        let address = "/?"
+        if (s != "") {
+            address += "search="+s+"&"
+        }
+        if (d1 != "") {
+            address += "startdate="+new Date(d1).toISOString()+"&"
+        }
+        if (d2 != "") {
+            address += "enddate="+new Date(d2).toISOString()+"&"
+        }
+        if (c) {
+            address += "show_ended=1&"
+        }
+        if (near) {
+            address += "near=1&"
+        }
+        window.location.replace(address)
+    }
+    function searchUsers() {
+        let s = document.getElementById("search-user-input").value
+        window.location.replace("search_user/"+s)
+    }
+</script>
+{% endblock %}

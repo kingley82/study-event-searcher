@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Настройки адреса{% endblock %}
+
+{% block head %}
+<link
+ rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+{{ lat|json_script:"lat" }}
+{{ lon|json_script:"lon" }}
+<div class="auth-form" style="margin-top: 2%; width: 75%">
+    <div id="map" style="height: 75vh; margin: 0 0 5px 0; border-radius: 0.375rem;"></div>
+    <!-- <h5>Текущий адрес: xxx</h5> -->
+    <button class="btn btn-primary" onclick="save()">Сохранить</button>
+    <a class="btn btn-danger" href="/profile/edit/address/delete">Отвязать адрес</a>
+</div>
+<script>
+    console.log("{{ redirect }}")
+    let lat = document.getElementById("lat").textContent;
+    let lon = document.getElementById("lon").textContent;
+    var map = L.map('map').setView([55.7509569, 37.6176916], 5);
+    let marker = null;
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  let flag = document.getElementsByClassName("leaflet-attribution-flag")
+  flag[0].remove();
+//   {% for event in events %}
+//   L.marker([{{ event.latitude }}, {{ event.longitude }}]).addTo(map).bindPopup('{% if event.date <= now and now <= event.enddate %}<p style="color: #33cc33;">Событие уже началось</p>{% elif event.enddate < now %}<p style="color: #a30000;">Событие закончилось</p>{% endif %}<p><a href="/event/{{ event.id }}" target="_blank">{{ event.name }}</a></p>');
+//   {% endfor %}
+    if (lat == "null" || lon == "null") {
+        fetch("https://ifconfig.me/ip").then(function(response) {
+        return response.text();
+    }).then(function(data) {
+        fetch("http://ip-api.com/json/"+data).then(function(response) {
+            return response.json();
+        }).then(function(data2) {
+            map.setView([data2.lat, data2.lon], 5)
+        }).catch(function(err) {
+            console.log('Fetch Error :-S', err);
+        });
+    }).catch(function(err) {
+        console.log('Fetch Error :-S', err);
+    });
+    }
+    else {
+        map.setView([lat, lon], 15)
+        marker = L.marker([lat, lon]);
+        marker.addTo(map);
+    }
+map.on('click', function(e) {
+    if (marker != null) marker.remove()
+    lat = e.latlng.lat
+    lon = e.latlng.lng
+    marker = L.marker([lat, lon])
+    marker.addTo(map)
+})
+function save() {
+    window.location.replace("/profile/edit/address/set?lat="+lat+"&lon="+lon+"&redirect={{ redirect|urlencode }}")
+}
+</script>
+{% endblock %}

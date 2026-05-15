@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block head %}
+<link
+ rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div id="event-content">
+  <div style="flex: 0.52;display: flex; flex-direction: column;">
+    <div id="map">
+      <div style="position:absolute;right:0;z-index: 99999; display: flex;gap:5px;">
+        <a href="https://maps.yandex.ru/?text={{ event.latitude }}+{{ event.longitude }}&z=14" target="_blank"><img src="/media/logos/yandex.png" style="flex: 1; width:32px;height:32px;"></a>
+        <a href="https://2gis.ru/search/{{ event.latitude }}%20{{ event.longitude }}?m={{ event.longitude }}%2C{{ event.latitude }}%2F14" target="_blank"><img src="/media/logos/2gis.png" style="flex: 1;height:32px; width:32px"></a>
+        <a href="https://www.google.com/maps/search/{{ event.latitude }}%20{{  event.longitude  }}" target="_blank"><img src="/media/logos/googlemaps.png" style="flex: 1;height:32px; width:32px"></a>
+      </div>
+      <!-- https://2gis.ru/krasnoyarsk/search/56.040500%2092.887173?m=92.887173%2C56.0405%2F13 -->
+    </div>
+  </div>
+  
+  <div id="event-info">
+    <!-- <div id="profile-info">
+        <div class="profile-info--part">
+            <img src="/media/{{ user.avatar }}" id="profile-image"/>
+            <h2 id="profile-name">{{ user.name }}</h2>
+            <div id="profile-media">
+                {% for key, value in media.items %}
+                <a href="{{ value }}" target="_blank"><img src="/media/logos/{{ key }}.png" width="32" height="32" class="profile-media-link"></a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="profile-info--part">
+            <h2>{{ events_count }}</h2>
+            <h5>Мероприятий проведено</h5>
+            <div style="height: 10px;"></div>
+            <h2>{{ avg_rating }}★</h2>
+            <h5>Оценка организатора</h5>
+        </div>
+      </div> -->
+    <div style="display: flex; justify-content: center;">
+      <div style="flex:1;"></div>
+      <button class="event-switch" id="showInfoEvent" onclick="showInfo(0)">Событие</button>
+      <div style="flex:1;"></div>
+      <button class="event-switch" id="showInfoOrg" onclick="showInfo(1)">Организатор</button>
+      <div style="flex:1;"></div>
+    </div>
+    <div class="index-event" style="padding-top: 10px;">
+      <div id="infoEvent">
+        <img src="/media/{{ event.image }}" style="width: 100%;">
+        {% if request.user.id == org.id and event.enddate > now %}
+          <button class="btn btn-danger" style="border-radius: 0; margin-bottom: 5px;width:100%;" onclick="alertDeleteEvent()">Отменить мероприятие</button>
+        {% else %}
+          {% if event.explicit and age < 18 and not rec %}
+            <a class="btn btn-secondary" style="border-radius: 0; margin-bottom: 5px; width:100%;" disabled>Вам нет 18</a>
+          {% elif event.explicit and ange < 18 and rec %}
+            <a class="btn btn-danger" style="border-radius: 0; margin-bottom: 5px;width:100%;" href="/event/{{ event.id }}/cancel_register">Я не пойду</a>
+          {% else %}
+            {% if request.user.id != org.id and event.enddate > now and not rec %}
+            <a class="btn btn-primary" style="border-radius: 0; margin-bottom: 5px;width:100%;" href="/event/{{ event.id }}/register">Я пойду!</a>
+            {% elif request.user.id != org.id and event.enddate > now and rec %}
+            <a class="btn btn-danger" style="border-radius: 0; margin-bottom: 5px;width:100%;" href="/event/{{ event.id }}/cancel_register">Я не пойду</a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        <div style="display: flex; flex: 1; flex-direction: column;">
+          <h3 style="word-break: break-word; text-align: justify;">{{ event.name }}</h3>
+          <h4>{{ avg_rating }}★</h4>
+          <h5 style="text-align: justify;">{{ event.desc }}</h5>
+          <h5><b>Время проведения: {{ timezoned_date }} - {{ timezoned_enddate }}</b></h5>
+          <div style="display: flex;">
+            {% if event.enddate <= now %}
+            <div id="expired">
+              <b>Мероприятие завершилось</b>
+            </div>
+            {% else %}
+            {% if event.date < now %}
+            <div id="going">
+              <b>Мероприятие уже идет</b>
+            </div>
+            {% endif %}
+            {% if event.explicit %}
+            <div class="explicit">
+              <b>Мероприятие 18+! Не забудьте взять с собой удостоверение личности</b>
+            </div>
+            {% endif %}
+            {% endif %}
+          </div>
+      </div>
+      </div>
+      <div id="profile-info" hidden>
+        <div class="profile-info--part">
+            <a href="/profile/{{ org.id }}"><img src="/media/{{ user.avatar }}" id="profile-image"/></a>
+            <h2 id="profile-name">{{ user.name }}</h2>
+            <div id="profile-media">
+                {% for key, value in media.items %}
+                <a href="{{ value }}" target="_blank"><img src="/media/logos/{{ key }}.png" width="32" height="32" class="profile-media-link"></a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="profile-info--part">
+            <h2>{{ events_count }}</h2>
+            <h5>Мероприятий проведено</h5>
+            <div style="height: 10px;"></div>
+            <h2>{{ avg_rating }}★</h2>
+            <h5>Оценка организатора</h5>
+        </div>
+      </div>
+      <hr>
+      <h4>Комментарии ({{ comments_count }})</h4>
+      {% if request.user.id == event.org.id %}
+        <form method="post" id="comment-form" enctype="multipart/form-data" action="/event/{{ event.id }}/org_comment">
+          {% csrf_token %}
+          <div>
+              {{ org_comment_form.comment.label_tag }}
+              {{ org_comment_form.comment }}
+              {{ org_comment_form.comment.errors }}
+          </div>
+          <div>
+              {{ org_comment_form.image.label_tag }}
+              {{ org_comment_form.image }}
+              {{ org_comment_form.image.errors }}
+          </div>
+          <button type="submit" class="btn btn-primary" style="margin-top: 5px;">Отправить</button>
+        </form>
+      {% else %}
+        {% if prev_comment %}
+          <div id="comment-form">
+            <h5>Вы уже оставляли комментарий:</h5>
+            <h6 style="word-break: break-word;text-align: justify;">{{ prev_comment.comment }}</h6>
+            <h6>Оценка: {{ prev_comment.rating }}/5</h6>
+            {% if not rec %}
+            <div class="explicit" style="margin-top: 5px;">
+              Вы не зарегистрированы на мероприятие. Ваш комментарий будет скрыт, а оценка не будет учтена при подсчете среднего балла организатора
+            </div>
+            <div style="height: 10px;"></div>
+            {% endif %}
+            {% if prev_comment.image %}
+            <img style="width: 25%; height: auto;" src="/media/{{ prev_comment.image }}">
+            <br>
+            {% endif %}
+            {% if now < event.enddate %}
+            <a style="color: red; cursor: pointer;" onclick="alertDelete({{ prev_comment.id }})">[ Удалить ]</a>
+            {% endif %}
+          </div>
+        {% else %}
+          {% if not rec %}
+          <h5>Вы должны зарегистрироваться на мероприятие, чтобы оставлять комментарии</h5>
+          {% else %}
+            {% if event.date > now %}
+            <h5>Мероприятие еще не началось</h5>
+            {% else %}
+              <!-- { else} -->
+                <form method="post" id="comment-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div>
+                    {{ form.rating.label_tag }}
+                    {{ form.rating }}
+                    {{ form.rating.errors }}
+               </div>
+                <div>
+                    {{ form.comment.label_tag }}
+                    {{ form.comment }}
+                    {{ form.comment.errors }}
+                </div>
+                <div>
+                    {{ form.image.label_tag }}
+                    {{ form.image }}
+                    {{ form.image.errors }}
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 5px;">Отправить</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      <hr>
+      <div>
+        {% for comment in comments %}
+        <div class="comment">
+          <div>
+            <a href="/profile/{{ comment.user.id }}"><img src="/media/{{ comment.user.avatar }}" style="width: 80px; height: auto; aspect-ratio: 1/1; border: 1px solid #BBB; border-radius: 100%;"></a>
+          </div>
+          <div style=" width: 100%;">
+            <div style="display: flex; gap: 10px;">
+              <h5>{{ comment.user.name }}</h5>
+              {% if comment.rating %}
+              <h5>{% with ""|center:comment.rating as stars %}{% for _ in stars %}★{% endfor %}{% endwith %}</h5>
+              {% endif %}
+              <div style="flex: 1;"></div>
+              <h6>{{ comment.time }}</h6>
+            </div>
+            <h6>{{ comment.comment }}</h6>
+            {% if comment.image %}
+              <a href="/media/{{ comment.image }}" target="_blank"><img src="/media/{{ comment.image }}" style="width: 20%; height: auto;"></a>
+            {% endif %}
+            {% if comment.is_org and request.user.id == event.org.id %}
+              <br>
+              <a style="color: red; cursor: pointer;" onclick="alertOrgDelete({{ comment.id }})">[ Удалить ]</a>
+            {% endif %}
+          </div>
+        </div>
+        <hr>
+        {% endfor %}
+      </div>
+  </div>
+  </div>
+</div>
+<script>
+  const showInfoEvent = document.getElementById("showInfoEvent");
+  const showInfoOrg = document.getElementById("showInfoOrg");
+  const infoEvent = document.getElementById("infoEvent");
+  const profileInfo = document.getElementById("profile-info")
+  function alertDelete(id) {
+    if (window.confirm("Вы действительно хотите удалить данный комментарий? Вы не сможете восстановить его, но сможете написать новый")) {
+        window.location.replace("/delete_comment/"+id)
+    }
+  }
+  function alertOrgDelete(id) {
+    if (window.confirm("Вы действительно хотите удалить данный комментарий? Вы не сможете восстановить его")) {
+        window.location.replace("/delete_org_comment/"+id)
+    }
+  }
+  function alertDeleteEvent() {
+    if (window.confirm("Вы действительно хотите отменить данное событие? Вы не сможете восстановить его")) {
+        window.location.replace("/event/{{ event.id }}/cancel")
+    }
+  }
+  function showInfo(parameter) {
+    if (parameter == 0) {
+      showInfoEvent.style.borderColor = "black"
+      showInfoOrg.style.borderColor = "transparent"
+      infoEvent.hidden = false
+      profileInfo.hidden = true
+
+    } else {
+      showInfoEvent.style.borderColor = "transparent"
+      showInfoOrg.style.borderColor = "black"
+      infoEvent.hidden = true
+      profileInfo.hidden = false
+    }
+  }
+  showInfo(0)
+  var map = L.map('map').setView([{{ event.latitude }}, {{ event.longitude }}], 15);
+  L.marker([{{ event.latitude }}, {{ event.longitude }}]).addTo(map).bindPopup('{{ event.address }}').openPopup();
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  let flag = document.getElementsByClassName("leaflet-attribution-flag")
+  flag[0].remove();
+  function goBack() {
+    if (document.referrer && document.referrer !== window.location.href) {
+        window.history.back();
+    } else {
+        window.location.href = "/";
+    }
+  }
+</script>
+{% endblock %}

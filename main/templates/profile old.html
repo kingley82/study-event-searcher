@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div id="profile-main">
+    <div id="profile-info">
+        <div class="profile-info--part">
+            <img src="/media/{{ user.avatar }}" id="profile-image"/>
+            <h2 id="profile-name">{{ user.name }}</h2>
+            <div id="profile-media">
+                <!-- <a><img src="/media/logos/tg.png" width="32" height="32" class="profile-media-link"></a>
+                <a><img src="/media/logos/max.png" width="32" height="32" class="profile-media-link"></a>
+                <a><img src="/media/logos/vk.png" width="32" height="32" class="profile-media-link"></a>
+                <a><img src="/media/logos/whatsapp.png" width="32" height="32" class="profile-media-link"></a>
+                <a><img src="/media/logos/insta.png" width="32" height="32" class="profile-media-link"></a> -->
+                {% for key, value in media.items %}
+                <a href="{{ value }}" target="_blank"><img src="/media/logos/{{ key }}.png" width="32" height="32" class="profile-media-link"></a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="profile-info--part">
+            <h2>{{ events_count }}</h2>
+            <h5>Мероприятий проведено</h5>
+            <div style="height: 10px;"></div>
+            <h2>{{ avg_rating }}★</h2>
+            <h5>Оценка организатора</h5>
+        </div>
+    </div>
+    <div id="profile-nav">
+        <select id="profile-select" class="form-select" onchange="onChange()">
+            <option>Мероприятия</option>
+            <option>Комментарии</option>
+            {% if request.user.id == user.id %}
+            <option>Я пойду</option>
+            {% endif %}
+        </select>
+        <div style="flex: 1;"></div>
+        {% if request.user.id == user.id %}
+        <a class="btn btn-primary" href="/profile/edit">Редактировать профиль</a>
+        {% endif %}
+    </div>
+    <div id="profile-container">
+        <div id="events">
+            {% if events %}
+            {% for event in events %}
+            <div class="profile-event">
+                <a href="/event/{{ event.id }}"><img src="/media/{{ event.image }}" style="height: 100px; aspect-ratio: 2/1; border-radius: 5px;"></a>
+                <div class="profile-event--text">
+                    <h3>{{ event.name }}</h3>
+                    {% if event.date < now and now < event.enddate %}
+                    <p style="color: #33cc33;">Мероприятие проходит прямо сейчас</p>
+                    {% if event.avg_rating %}
+                    <p>{{ event.avg_rating }}★</p>
+                    {% else %}
+                    <p>0.00★</p>
+                    {% endif %}
+                    {% elif event.enddate < now %}
+                    <p style="color: #f00;">Мероприятие завершено</p>
+                    {% if event.avg_rating %}
+                    <p>{{ event.avg_rating }}★</p>
+                    {% else %}
+                    <p>0.00★</p>
+                    {% endif %}
+                    {% else %}
+                    <p>Состоится {{ event.date|date:"d.m.Y H:i" }}</p>
+                    {% endif %}
+                </div>
+                {% if event.enddate > now and event.org.id == request.user.id %}
+                <a style="color: red; cursor: pointer;" onclick="alertCancel({{ event.id }})">[ Отменить ]</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <h4 id="nothing-here-text">Пользователь еще не организовывал мероприятия</h4>
+            {% endif %}
+        </div>
+        <div id="comments" hidden>
+            {% if comments %}
+            {% for comment in comments %}
+                <div class="comment">
+                    <!-- <div>
+                    <a href="/profile/{{ comment.user.id }}"><img src="/media/{{ comment.user.avatar }}" style="width: 80px; height: auto; aspect-ratio: 1/1; border: 1px solid #BBB; border-radius: 100%;"></a>
+                    </div> -->
+                    <div style=" width: 100%;">
+                    <div style="display: flex; gap: 10px;">
+                        <a href="/event/{{ comment.event.id }}"><h5>{{ comment.event.name }}</h5></a>
+                        <h5>{% with ""|center:comment.rating as stars %}{% for _ in stars %}★{% endfor %}{% endwith %}</h5>
+                        <div style="flex: 1;"></div>
+                        <h6>{{ comment.time|date:"d.m.Y H:i" }}</h6>
+                    </div>
+                    <h6>{{ comment.comment }}</h6>
+                    {% if comment.image %}
+                        <img src="/media/{{ comment.image }}" style="width: 20%; height: auto;">
+                    {% endif %}
+                    </div>
+                </div>
+                <hr style="margin-bottom: 0;">
+            {% endfor %}
+            {% else %}
+            <h4 id="nothing-here-text">Пользователь еще не оставлял комментарии</h4>
+            {% endif %}
+        </div>
+        {% if request.user.id == user.id %}
+        <div id="planned" hidden>
+            <!-- {% if comments %}
+            {% else %}
+            <h4 id="nothing-here-text">Пользователь еще не оставлял комментарии</h4>
+            {% endif %} -->
+            {% if registered %}
+            {% for event in registered %}
+            <div class="profile-event">
+                <a href="/event/{{ event.id }}"><img src="/media/{{ event.image }}" style="height: 100px; aspect-ratio: 2/1; border-radius: 5px;"></a>
+                <div class="profile-event--text">
+                    <h3>{{ event.name }}</h3>
+                    {% if event.date < now and now < event.enddate %}
+                    <p style="color: #33cc33;">Мероприятие проходит прямо сейчас</p>
+                    {% if event.avg_rating %}
+                    <p>{{ event.avg_rating }}★</p>
+                    {% else %}
+                    <p>0.00★</p>
+                    {% endif %}
+                    {% elif event.enddate < now %}
+                    <p style="color: #f00;">Мероприятие завершено</p>
+                    {% if event.avg_rating %}
+                    <p>{{ event.avg_rating }}★</p>
+                    {% else %}
+                    <p>0.00★</p>
+                    {% endif %}
+                    {% else %}
+                    <p>Состоится {{ event.date|date:"d.m.Y H:i" }}</p>
+                    {% endif %}
+                </div>
+
+                {% if event.date > now and event.user.id == request.user.id %}
+                <a style="color: red; cursor: pointer;" onclick="alertCancel({{ event.id }})">[ Отменить ]</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <h4>Вы еще не регистрировались ни на одно мероприятие</h4>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+<script>
+let events_div = document.getElementById("events")
+let comments_div = document.getElementById("comments")
+let planned = document.getElementById("planned")
+function onChange() {
+    let val = document.getElementById("profile-select").value;
+    if (val == "Мероприятия") {
+        events_div.hidden = false
+        comments_div.hidden = true
+        planned.hidden = true
+    } else if (val == "Комментарии") {
+        events_div.hidden = true
+        comments_div.hidden = false
+        planned.hidden = true
+    } else if (val == "Я пойду") {
+        events_div.hidden = true
+        comments_div.hidden = true
+        planned.hidden = false
+    }
+}
+function alertCancel(id) {
+    if (window.confirm("Вы действительно хотите отменить данное событие? У вас не будет возможности восстановить его")) {
+        window.location.replace("/event/"+id+"/cancel")
+    }
+}
+</script>
+{% endblock %}

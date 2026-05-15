@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать профиль{% endblock %}
+
+{% block content %}
+<form method="post" class="auth-form" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display: flex;">
+        <div style="flex: 1; margin-right: 2px;">
+            <div>
+                {{ form.login.label_tag }}
+                {{ form.login }}
+                {{ form.login.errors }}
+            </div>
+
+            <div>
+                {{ form.name.label_tag }}
+                {{ form.name }}
+                {{ form.name.errors }}
+            </div>
+
+            <div>
+                {{ form.avatar.label_tag }}
+                {{ form.avatar }}
+                {{ form.avatar.errors }}
+                <small>!!! Учтите, что ваш аватар будет сжат до разрешения 1:1</small>
+            </div>
+            <div>
+                {{ form.old_password.label_tag }}
+                {{ form.old_password }}
+                {{ form.old_password.errors }}
+            </div>
+
+            <div>
+                {{ form.new_password.label_tag }}
+                {{ form.new_password }}
+                {{ form.new_password.errors }}
+            </div>
+
+            <a class="btn btn-outline-primary" style="margin-top: 5px;" href="/profile/edit/address">Настройки адреса</a>
+        </div>
+
+        <div style="flex: 1; margin-left: 3px;">
+            <div>
+                {{ form.tg_account.label_tag }}
+                {{ form.tg_account }}
+                {{ form.tg_account.errors }}
+            </div>
+
+            <div>
+                {{ form.max_account.label_tag }}
+                {{ form.max_account }}
+                {{ form.max_account.errors }}
+            </div>
+
+            <div>
+                {{ form.vk_account.label_tag }}
+                {{ form.vk_account }}
+                {{ form.vk_account.errors }}
+            </div>
+
+            <div>
+                {{ form.whatsapp_account.label_tag }}
+                {{ form.whatsapp_account }}
+                {{ form.whatsapp_account.errors }}
+            </div>
+
+            <div>
+                {{ form.insta_account.label_tag }}
+                {{ form.insta_account }}
+                {{ form.insta_account.errors }}
+            </div>
+            <small>*WhatsApp и Instagram принадлежат компании Meta, признанной экстремистской на территории РФ</small>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top: 5px;">Сохранить</button>
+    <a class="btn btn-secondary" href="/profile" style="margin-top: 5px;">Отменить</a>
+    <a class="btn btn-danger" href="/logout" style="margin-top: 5px;">Выйти из системы</a>
+</form>
+{% endblock %}

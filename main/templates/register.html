@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Войти{% endblock %}
+
+{% block content %}
+
+<div style="display: flex; flex: 1; overflow: hidden;">
+    <div style="flex: 0.625; display: flex; align-items: center; background-color: #e6e6e6; justify-content: center;">
+        <img src="/media/logos/login.png">
+    </div>
+    <div style="flex: 0.375; display: flex; flex-direction: column;">
+        <h1 style="text-align: center; margin-top: 5px;"><b>Вход в аккаунт</b></h1>
+        <div style="flex: 1.5"></div>
+        <form method="post" style="width: 60%; align-self: center;">
+            {% csrf_token %}
+
+            <div class="form-row">
+                {{ form.login.label_tag }}
+                {{ form.login }}
+                {{ form.login.errors }}
+            </div>
+
+            <div class="form-row">
+                {{ form.name.label_tag }}
+                {{ form.name }}
+                {{ form.name.errors }}
+            </div>
+
+            <div class="form-row">
+                {{ form.birthday.label_tag }}
+                {{ form.birthday }}
+                {{ form.birthday.errors }}
+            </div>
+
+            <div class="form-row">
+                {{ form.password1.label_tag }}
+                {{ form.password1 }}
+                {{ form.password1.errors }}
+            </div>
+
+            <div class="form-row">
+                {{ form.password2.label_tag }}
+                {{ form.password2 }}
+                {{ form.password2.errors }}
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+                <a class="btn btn-secondary" href="/login">Войти</a>
+            </div>
+        </form>
+        <div style="flex: 0.5"></div>
+    </div>
+</div>
+
+{% endblock %}

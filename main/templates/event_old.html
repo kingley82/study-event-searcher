@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block head %}
+<link
+ rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div id="event-content">
+    <h6 onclick="goBack()" style="cursor: pointer;">← Назад</h6>
+    <h1 style="word-break: break-word; text-align: justify;">{{ event.name }}<br>{{ avg_rating }}★</h1>
+    <div style="display: flex;">
+      <img src="/media/{{ event.image }}" id="event-image">
+      <div style="display: flex;flex: 0.75;flex-direction: column; height: min-content;">
+        <div id="event-org">
+          <h5>Организатор:</h5>
+          <div style="display: flex;align-items: center;justify-content: center;flex: 1;flex-direction: column;">
+            <a href="/profile/{{ org.id }}"><img src="/media/{{ org.avatar }}" style="width: 100px; aspect-ratio: 1/1; border-radius: 100%; margin: 10px;border: 1px solid #BBB;"></a>
+            <h3 style="font-size: 1.75rem; word-break: break-word;">{{ org.name }}</h3>
+            <!-- <small>{{ org_avg_rating }}★</small> -->
+          </div>
+          <small>{{ org_avg_rating }}★</small>
+          <div id="profile-media">
+                {% for key, value in media.items %}
+                <a href="{{ value }}" target="_blank"><img src="/media/logos/{{ key }}.png" width="32" height="32" class="profile-media-link"></a>
+                {% endfor %}
+            </div>
+        </div>
+        {% if event.explicit and age < 18 and not rec %}
+        <a class="btn btn-secondary" style="margin: 10px 15px 0 15px; border-radius: 15px;" disabled>Мне нет 18</a>
+        {% elif event.explicit and ange < 18 and rec %}
+        <a class="btn btn-danger" style="margin: 10px 15px 0 15px; border-radius: 15px;" href="/event/{{ event.id }}/cancel_register">Я не пойду</a>
+        {% else %}
+        {% if request.user.id != org.id and event.enddate > now and not rec %}
+        <a class="btn btn-primary" style="margin: 10px 15px 0 15px; border-radius: 15px;" href="/event/{{ event.id }}/register">Я пойду!</a>
+        {% elif request.user.id != org.id and event.enddate > now and rec %}
+        <a class="btn btn-danger" style="margin: 10px 15px 0 15px; border-radius: 15px;" href="/event/{{ event.id }}/cancel_register">Я не пойду</a>
+        {% endif %}
+        {% endif %}
+        <div style="padding: 15px;">
+        <h5 style="word-break: break-word; text-align: justify;">{{ event.desc }}</h5>
+          <h6>Время проведения: {{ timezoned_date }} - {{ timezoned_enddate }}</h6>
+          {% if event.enddate <= now %}
+          <div id="expired">
+            Мероприятие завершилось
+          </div>
+          {% else %}
+          {% if event.date < now %}
+          <div id="going">
+            Мероприятие уже идет
+          </div>
+          {% if event.explicit %}
+          <div class="explicit">
+            Мероприятие 18+! Не забудьте взять с собой удостоверение личности
+          </div>
+          {% endif %}
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      </div>
+    <!-- <h5>{{ event.desc }}</h5>
+    <h6>Время проведения: {{ timezoned_date }} - {{ timezoned_enddate }}</h6>
+    {% if event.enddate <= now %}
+    <div id="expired">
+      Мероприятие завершилось
+    </div>
+    {% else %}
+    {% if event.date < now %}
+    <div id="going">
+      Мероприятие уже идет
+    </div>
+    {% if event.explicit %}
+    <div class="explicit">
+      Мероприятие 18+! Не забудьте взять с собой удостоверение личности
+    </div>
+    {% endif %}
+    {% endif %}
+    {% endif %} -->
+    <hr>
+    <h5><small><a href="https://maps.yandex.ru/?text={{ event.latitude }}+{{ event.longitude }}">Яндекс.Карты</a>, <a href="https://2gis.ru/search/{{ event.latitude }}%20{{ event.longitude }}">2GIS</a>, <a href="https://www.google.com/maps/@{{ event.latitude }},{{ event.longitude }},15z">Google Maps</a></small></h5>
+    <div id="map" style="height: 500px; margin: 0;"></div>
+    <hr>
+    <div id="comment-section">
+      <h3>Комментарии</h3>
+      <br>
+      {% if request.user.id == event.org.id %}
+        <form method="post" id="comment-form" enctype="multipart/form-data" action="/event/{{ event.id }}/org_comment">
+          {% csrf_token %}
+          <div>
+              {{ org_comment_form.comment.label_tag }}
+              {{ org_comment_form.comment }}
+              {{ org_comment_form.comment.errors }}
+          </div>
+          <div>
+              {{ org_comment_form.image.label_tag }}
+              {{ org_comment_form.image }}
+              {{ org_comment_form.image.errors }}
+          </div>
+          <button type="submit" class="btn btn-primary" style="margin-top: 5px;">Отправить</button>
+        </form>
+      {% else %}
+        {% if prev_comment %}
+          <div id="comment-form">
+            <h5>Вы уже оставляли комментарий:</h5>
+            <h6>{{ prev_comment.comment }}</h6>
+            <h6>Оценка: {{ prev_comment.rating }}/5</h6>
+            {% if prev_comment.image %}
+            <img style="width: 25%; height: auto;" src="/media/{{ prev_comment.image }}">
+            <br>
+            {% endif %}
+            {% if now < event.enddate %}
+            <a style="color: red; cursor: pointer;" onclick="alertDelete({{ prev_comment.id }})">[ Удалить ]</a>
+            {% endif %}
+            {% if not rec %}
+            <div class="explicit" style="margin-top: 5px;">
+              Вы не зарегистрированы на мероприятие. Ваш комментарий будет скрыт, а оценка не будет учтена при подсчете среднего балла организатора
+            </div>
+            {% endif %}
+          </div>
+        {% else %}
+          {% if not rec %}
+          <h5>Вы должны зарегистрироваться на мероприятие, чтобы оставлять комментарии</h5>
+          {% else %}
+            {% if event.date > now %}
+            <h5>Мероприятие еще не началось</h5>
+            {% else %}
+              <!-- { else} -->
+                <form method="post" id="comment-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div>
+                    {{ form.rating.label_tag }}
+                    {{ form.rating }}
+                    {{ form.rating.errors }}
+               </div>
+                <div>
+                    {{ form.comment.label_tag }}
+                    {{ form.comment }}
+                    {{ form.comment.errors }}
+                </div>
+                <div>
+                    {{ form.image.label_tag }}
+                    {{ form.image }}
+                    {{ form.image.errors }}
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 5px;">Отправить</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      <hr>
+      {% for comment in comments %}
+      <div class="comment">
+        <div>
+          <a href="/profile/{{ comment.user.id }}"><img src="/media/{{ comment.user.avatar }}" style="width: 80px; height: auto; aspect-ratio: 1/1; border: 1px solid #BBB; border-radius: 100%;"></a>
+        </div>
+        <div style=" width: 100%;">
+          <div style="display: flex; gap: 10px;">
+            <h5>{{ comment.user.name }}</h5>
+            {% if comment.rating %}
+            <h5>{% with ""|center:comment.rating as stars %}{% for _ in stars %}★{% endfor %}{% endwith %}</h5>
+            {% endif %}
+            <div style="flex: 1;"></div>
+            <h6>{{ comment.time }}</h6>
+          </div>
+          <h6>{{ comment.comment }}</h6>
+          {% if comment.image %}
+            <a href="/media/{{ comment.image }}" target="_blank"><img src="/media/{{ comment.image }}" style="width: 20%; height: auto;"></a>
+          {% endif %}
+          {% if comment.is_org and request.user.id == event.org.id %}
+            <br>
+            <a style="color: red; cursor: pointer;" onclick="alertOrgDelete({{ comment.id }})">[ Удалить ]</a>
+          {% endif %}
+        </div>
+      </div>
+      <hr>
+      {% endfor %}
+    </div>
+</div>
+<script>
+  function alertDelete(id) {
+    if (window.confirm("Вы действительно хотите удалить данный комментарий? Вы не сможете восстановить его, но сможете написать новый")) {
+        window.location.replace("/delete_comment/"+id)
+    }
+  }
+  function alertOrgDelete(id) {
+    if (window.confirm("Вы действительно хотите удалить данный комментарий? Вы не сможете восстановить его")) {
+        window.location.replace("/delete_org_comment/"+id)
+    }
+  }
+  var map = L.map('map').setView([{{ event.latitude }}, {{ event.longitude }}], 15);
+  L.marker([{{ event.latitude }}, {{ event.longitude }}]).addTo(map).bindPopup('{{ event.address }}').openPopup();
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  let flag = document.getElementsByClassName("leaflet-attribution-flag")
+  flag[0].remove();
+  function goBack() {
+    if (document.referrer && document.referrer !== window.location.href) {
+        window.history.back();
+    } else {
+        window.location.href = "/";
+    }
+  }
+</script>
+{% endblock %}

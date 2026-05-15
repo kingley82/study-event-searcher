@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div style="flex: 1; display: flex; height: 100%; overflow: hidden;">
+    <div style="flex: 0.32; display: flex;">
+        <div style="display: flex; flex-direction: column; padding: 30px; flex: 1;align-items: center;">
+            <img src="/media/{{ user.avatar }}" id="profile-image" style="width: 200px; height: 200px;"/>
+            <div style="height: 10px;"></div>
+            <h2 id="profile-name">{{ user.name }}</h2>
+            <div id="profile-media">
+                {% for key, value in media.items %}
+                <a href="{{ value }}" target="_blank"><img src="/media/logos/{{ key }}.png" width="32" height="32" class="profile-media-link"></a>
+                {% endfor %}
+                {% if request.user.id == user.id %}
+                <a href="/profile/edit" style="width:32px;height:32px; border-radius: 5px;text-align: center;"><img src="/media/logos/edit.svg" width="32" height="32"></a>
+                {% endif %}
+            </div>
+            <div class="profile-info--part" style="text-align: center;">
+                <h1 style="font-size: 4em;"><b>{{ events_count }}</b></h1>
+                <h5 style="font-size: 2em;">Мероприятий проведено</h5>
+                <div style="height: 10px;"></div>
+                <h1 style="font-size: 4em;"><b>{{ avg_rating }}</b>★</h1>
+                <h5 style="font-size: 2em;">Оценка организатора</h5>
+            </div>
+        </div>
+    </div>
+    <div style="flex: 0.28; background-color: #e6e6e6;padding-top: 10px; display: flex; flex-direction: column; height: 100%;">
+        <h1 style="text-align: center;"><B>Комментарии</B></h1>
+        <div id="comments">
+            {% if comments %}
+            {% for comment in comments %}
+                <div class="comment">
+                    <!-- <div>
+                    <a href="/profile/{{ comment.user.id }}"><img src="/media/{{ comment.user.avatar }}" style="width: 80px; height: auto; aspect-ratio: 1/1; border: 1px solid #BBB; border-radius: 100%;"></a>
+                    </div> -->
+                    <div style=" width: 100%;">
+                    <div style="display: flex; gap: 10px;">
+                        <a href="/event/{{ comment.event.id }}" style="word-break: break-all;"><h5>{{ comment.event.name }}</h5></a>
+                        <h5>{% with ""|center:comment.rating as stars %}{% for _ in stars %}★{% endfor %}{% endwith %}</h5>
+                        <div style="flex: 1;"></div>
+                        <h6 style="text-align: end;">{{ comment.time|date:"d.m.Y H:i" }}</h6>
+                    </div>
+                    <h6>{{ comment.comment }}</h6>
+                    {% if comment.image %}
+                        <img src="/media/{{ comment.image }}" style="width: 20%; height: auto;">
+                    {% endif %}
+                    </div>
+                </div>
+                <hr style="margin-bottom: 0;">
+            {% endfor %}
+            {% else %}
+            <h4 class="nothing-here-text">Пользователь еще не оставлял комментарии</h4>
+            {% endif %}
+        </div>
+    </div>
+    <div style="flex: 0.40;display: flex; flex-direction: column; padding-top: 10px">
+        <h1 style="text-align: center;"><B>Мероприятия</B></h1>
+        <div id="index-list">
+            {% if events %}
+            {% for event in events %}
+            <div class="index-event">
+                <a href="/event/{{ event.id }}" style="text-align: center; margin-bottom: 10px;" target="_blank"><img src="/media/{{ event.image }}" style="width: 100%;"></a>
+                <div style="display: flex; flex: 1; flex-direction: column;">
+                    <h3 style="word-break: break-word; text-align: justify;">{{ event.name }}</h3>
+                    <h4>{{ event.avg_rating }}★</h4>
+                    <h5 style="text-align: justify;">{{ event.desc }}</h5>
+                    <h6 style="text-align: justify;">{{ event.address }}</h6>
+                    {% if event.date <= event.now and event.now <= event.enddate %}
+                    <h6 style="color: #33cc33;">Мероприятие проходит прямо сейчас</h6>
+                    {% elif event.enddate < event.now %}
+                    <h6 style="color: #a30000;">Мероприятие завершилось</h6>
+                    {% else %}
+                    <h6><b>{{ event.showdate }}</b></h6>
+                    {% endif %}
+                </div>
+            </div>
+            <hr>
+            {% endfor %}
+            {% else %}
+            <h4 class="nothing-here-text">Пользователь еще не организовывал мероприятия</h4>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<script>
+function alertCancel(id) {
+    if (window.confirm("Вы действительно хотите отменить данное событие? У вас не будет возможности восстановить его")) {
+        window.location.replace("/event/"+id+"/cancel")
+    }
+}
+</script>
+{% endblock %}

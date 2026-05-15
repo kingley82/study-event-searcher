@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать мероприятие{% endblock %}
+
+{% block head %}
+<link
+ rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex: 1;">
+    <div id="map" style="flex: 0.6;"></div>
+    <form method="post" enctype="multipart/form-data" class="create-event-form" id="createForm" style="display: flex; flex-direction: column;">
+        <h1 style="text-align: center;"><b>Создание события</b></h1>
+        {% csrf_token %}
+
+        {{ form.non_field_errors }}
+
+        <div class="form-row">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+            {{ form.name.errors }}
+        </div>
+
+        <div class="form-row">
+            {{ form.desc.label_tag }}
+            {{ form.desc }}
+            {{ form.desc.errors }}
+        </div>
+
+        <div class="form-row">
+            {{ form.address.label_tag }}
+            {{ form.address }}
+            {{ form.address.errors }}
+        </div>
+
+        <div class="form-row">
+            {{ form.image.label_tag }}
+            {{ form.image }}
+            {{ form.image.errors }}
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-row" style="flex: 1;">
+                {{ form.date.label_tag }}
+                {{ form.date }}
+                {{ form.date.errors }}
+            </div>
+
+            <div class="form-row"  style="flex: 1;">
+                {{ form.enddate.label_tag }}
+                {{ form.enddate }}
+                {{ form.enddate.errors }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label style="display: inline; margin-right: 10px;" for="{{ form.explicit.id_for_label }}">
+                {{ form.explicit.label }}
+            </label>
+            {{ form.explicit }}
+            {{ form.explicit.errors }}
+        </div>
+
+        {{ form.latitude }}
+        {{ form.longitude }}
+        {{ form.timezone }}
+        <div style="flex:1;"></div>
+        <button type="submit" class="btn btn-primary">Создать</button>
+    </form>
+</div>
+<script>
+  let marker = null;  
+  var map = L.map('map').setView([55.7509918,37.6165713], 15);
+  document.getElementById("id_latitude").value = 55.7509918
+  document.getElementById("id_longitude").value = 37.6165713
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap contributors'}).addTo(map);
+  let flag = document.getElementsByClassName("leaflet-attribution-flag")
+  flag[0].remove();
+  map.on('click', function(e) {
+    if (marker != null) marker.remove();
+    marker = L.marker([e.latlng.lat, e.latlng.lng])
+    marker.addTo(map)
+    fetch("https://geocode.maps.co/reverse?lat=" + e.latlng.lat + "&lon=" + e.latlng.lng + "&api_key=YOUR_GEOCODE_API_KEY").then(function(response) {
+        return response.json();
+    }).then(function(data) {
+        document.getElementById("id_address").value = data.display_name
+        document.getElementById("id_latitude").value = e.latlng.lat.toFixed(6)
+        document.getElementById("id_longitude").value = e.latlng.lng.toFixed(6)
+    }).catch(function(err) {
+        console.log('Fetch Error :-S', err);
+    });
+  });
+  {% if request.user.lat == None or request.user.lon == None %}
+fetch("https://ifconfig.me/ip").then(function(response) {
+        return response.text();
+    }).then(function(data) {
+        fetch("http://ip-api.com/json/"+data).then(function(response) {
+            return response.json();
+        }).then(function(data2) {
+            map.setView([data2.lat, data2.lon], 5)
+        }).catch(function(err) {
+            console.log('Fetch Error :-S', err);
+        });
+    }).catch(function(err) {
+        console.log('Fetch Error :-S', err);
+    });
+  {% else %}
+    map.setView([{{ request.user.lat }}, {{ request.user.lon }}], 11);
+  {% endif %}
+//   document.getElementById("createForm").addEventListener("submit", function(e) {
+//     const dateInput = document.getElementById("id_date");
+//     const enddateInput = document.getElementById("id_enddate");
+
+//     if (dateInput.value) {
+//         dateInput.value = new Date(dateInput.value).toISOString();
+//     }
+
+//     if (enddateInput.value) {
+//         enddateInput.value = new Date(enddateInput.value).toISOString();
+//     }
+// });
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная{% endblock %}
+
+{% block head %}
+<link
+ rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- <div style="display: flex; gap: 15px; width: 50%; margin: 15px;">
+     <a class="btn btn-primary" href="/search">Поиск</a>
+    {% if clear_btn %}
+    <a class="btn btn-danger" href="/">Сбросить фильтр поиска</a>
+    {% endif %}
+</div> -->
+<div id="index-content">
+    <div id="map" style="flex: 0.6; margin: 0;"></div>
+    <div style="display: flex; flex-direction: column; flex: 0.4;">
+        <h1 style="margin: 10px; text-align: center;"><b>События</b></h1>
+        <div id="index-list">
+            {% if events %}
+            {% for event in events %}
+            <div class="index-event">
+                <a href="/event/{{ event.id }}" style="text-align: center; margin-bottom: 10px;" target="_blank"><img src="/media/{{ event.image }}" style="width: 100%;"></a>
+                <div style="display: flex; flex: 1; flex-direction: column;">
+                    <h3 style="word-break: break-word; text-align: justify;">{{ event.name }}</h3>
+                    <h4>{{ event.avg_rating }}★</h4>
+                    <h5 style="text-align: justify;">{{ event.desc }}</h5>
+                    <h6 style="text-align: justify;">{{ event.address }}</h6>
+                    {% if event.date <= event.now and event.now <= event.enddate %}
+                    <h6 style="color: #33cc33;">Мероприятие проходит прямо сейчас</h6>
+                    {% elif event.enddate < event.now %}
+                    <h6 style="color: #a30000;">Мероприятие завершилось</h6>
+                    {% else %}
+                    <h6><b>{{ event.showdate }}</b></h6>
+                    {% endif %}
+                </div>
+            </div>
+            <hr>
+            {% endfor %}
+            {% else %}
+            <h4 class="nothing-here-text">В ближайшее время мероприятий не запланировано</h4>
+            <h5 class="nothing-here-text">Либо по вашим параметрам поиска ничего не найдено</h5>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<script>
+var map = L.map('map').setView([55.7509569, 37.6176916], 5);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  let flag = document.getElementsByClassName("leaflet-attribution-flag")
+  flag[0].remove();
+  {% for event in events %}
+  L.marker([{{ event.latitude }}, {{ event.longitude }}]).addTo(map).bindPopup('{% if event.date <= now and now <= event.enddate %}<p style="color: #33cc33; word-break: break-all;">Событие уже началось</p>{% elif event.enddate < now %}<p style="color: #a30000;">Событие закончилось</p>{% endif %}<p><a href="/event/{{ event.id }}" target="_blank" style="word-break: break-all;">{{ event.name }}</a></p>');
+  {% endfor %}
+  {% if request.user.lat == None or request.user.lon == None %}
+fetch("https://ifconfig.me/ip").then(function(response) {
+        return response.text();
+    }).then(function(data) {
+        fetch("http://ip-api.com/json/"+data).then(function(response) {
+            return response.json();
+        }).then(function(data2) {
+            map.setView([data2.lat, data2.lon], 5)
+        }).catch(function(err) {
+            console.log('Fetch Error :-S', err);
+        });
+    }).catch(function(err) {
+        console.log('Fetch Error :-S', err);
+    });
+  {% else %}
+    map.setView([{{ request.user.lat }}, {{ request.user.lon }}], 10);
+  {% endif %}
+
+</script>
+{% endblock %}
